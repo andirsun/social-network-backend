@@ -26,10 +26,12 @@ app.get("/getFriends");
 app.get("/getFriendsFromFriends");
 app.delete("/deleteFriendRelation");
 
-app.post("/injectInfo",function(req,res){
+app.post("/runQuery",function(req,res){
+    let body = req.body;
+    let query = body.query;
     let session = driver.session();
  
-    session.run("match(x:Person{name:'Tomas'}) Match(y:Person{name:'Jose'}) create(x)-[:FRIEND]->(y) ")
+    session.run(query)
     .then(result => {
         result.records.forEach(record => {
         console.log(record)
