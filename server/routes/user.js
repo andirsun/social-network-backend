@@ -1,7 +1,25 @@
 const express = require("express");
 const app = express();
 const neo4j = require('neo4j-driver');
-//conection to databse
+var mysql      = require('mysql');
+
+///MYsql driver conection
+var connection = mysql.createConnection({
+  host     : 'sql9.freemysqlhosting.net',
+  user     : 'sql9334560',
+  password : 'iCsbEnyNad',
+  database : 'sql9334560'
+});
+ 
+connection.connect();
+ 
+connection.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
+  if (error) throw error;
+  console.log('The solution is: ', results[0].solution);
+});
+ 
+connection.end();
+//conection to databse nee4J
 var driver = neo4j.driver(
     'neo4j://localhost:7687',
     neo4j.auth.basic('neo4j', 'web2020'));
