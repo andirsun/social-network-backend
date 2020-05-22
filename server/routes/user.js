@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 const bcrypt = require('bcrypt');
 const neo4j = require('neo4j-driver');
+const jwt = require('jsonwebtoken');
+const User = require('../models/user');
 var mysql = require('mysql');
 
 ///MYsql driver conection
@@ -22,11 +24,79 @@ var mysql = require('mysql');
 // connection.end();
 //conection to databse nee4J
 var driver = neo4j.driver(
-	'neo4j://localhost:7687',
-	neo4j.auth.basic('neo4j', 'web2020')
+	'neo4j://167.172.216.181:7687',
+	neo4j.auth.basic('neo4j', 'neo4j')
 	);
     
     //neo4j.auth.basic('neo4j', 'web2020'));
+app.get("/getFriends",function(req,res){
+	//create the node js session driver in neo4j
+	let session = driver.session();
+	//reading the id from the url parameters
+	let idPerson = req.query.idPerson;
+	//run the query
+	let arrayFriends=[];
+	session.run("MATCH (x:Person {id:"+parseInt(idPerson)+"})-[:FRIEND]->(fof) RETURN fof.name as name , fof.id as id")
+	.then(result => {
+		result.records.forEach(record=>{
+			var name = record.get("name");
+			arrayFriends.push(name);
+		});
+		return res.status(200).json({
+			response:2,
+			content: arrayFriends
+		});
+	})
+	.catch(error => {
+		return res.status(200).json({
+			response:1,
+			content: error
+		});
+	})
+	.then(() => session.close());
+});
+app.get("/getFriendsFromFriends",function(req,res){
+	//create the node js session driver in neo4j
+	let session = driver.session();
+	
+	//reading the id from the quest url parameters
+	let idPerson = req.query.idPerson;
+	//create array to return
+	let arrayFriends = [];
+	//run the query
+	session.run("MATCH (x:Person {id:"+parseInt(idPerson)+"})-[:FRIEND]-(nodo)-[:FRIEND]->(xFriends) RETURN xFriends")
+	.then(result => {
+		result.records.forEach(record=>{
+				console.log(record["_fields"][0]["properties"]["name"])
+				//Get the name of the each record 
+				var name = record["_fields"][0]["properties"]["name"];
+				arrayFriends.push(name)
+		});
+		//return the response of the query
+		return res.status(200).json({
+			response:2,
+			content: arrayFriends
+		});
+	})
+	.catch(error => {
+		return res.status(200).json({
+			response:1,
+			content: error
+		});
+	})
+	.then(() => session.close());
+});
+app.post("/login",(req,res)=>{
+	var body = req.body;
+	/* token expiration in 30 days */
+	let token = jwt.sign({
+		email : body.email
+	},'secret',{expiresIn: 60*60*24*30})
+	return res.status(200).json({
+		ok : true,
+		token : token
+	})
+})
 app.post("/addNewFriendRelation",function(req,res){
 	//create the node js session driver in neo4j
 	let session = driver.session();
@@ -50,66 +120,32 @@ app.post("/addNewFriendRelation",function(req,res){
 			});
 	})
 	.then(() => session.close());
-    
+		
 });
-app.get("/getFriends",function(req,res){
-	//create the node js session driver in neo4j
+app.post("/runQuery",function(req,res){
+	let body = req.body;
+	let query = body.query;
 	let session = driver.session();
-	//reading the id from the url parameters
-	let idPerson = req.query.idPerson;
-	//run the query
-	let arrayFriends=[];
-	session.run("MATCH (x:Person {id:"+parseInt(idPerson)+"})-[:FRIEND]->(fof) RETURN fof.name as name , fof.id as id")
+
+	session.run(query)
 	.then(result => {
-			result.records.forEach(record=>{
-					var name = record.get("name");
-					arrayFriends.push(name);
+			result.records.forEach(record => {
+			console.log(record)
 			});
 			return res.status(200).json({
 					response:2,
-					content: arrayFriends
+					content: result
 			});
 	})
 	.catch(error => {
+			console.log(error)
 			return res.status(200).json({
 					response:1,
 					content: error
 			});
 	})
-	.then(() => session.close());
-});
-app.get("/getFriendsFromFriends",function(req,res){
-	//create the node js session driver in neo4j
-	let session = driver.session();
-
-	//reading the id from the quest url parameters
-	let idPerson = req.query.idPerson;
-	//create array to return
-	let arrayFriends = [];
-	//run the query
-	session.run("MATCH (x:Person {id:"+parseInt(idPerson)+"})-[:FRIEND]-(nodo)-[:FRIEND]->(xFriends) RETURN xFriends")
-	.then(result => {
-		result.records.forEach(record=>{
-				console.log(record["_fields"][0]["properties"]["name"])
-				//Get the name of the each record 
-				var name = record["_fields"][0]["properties"]["name"];
-				arrayFriends.push(name)
-		});
-		//return the response of the query
-			return res.status(200).json({
-					response:2,
-					content: arrayFriends
-			});
-	})
-	.catch(error => {
-			return res.status(200).json({
-					response:1,
-					content: error
-			});
-	})
-	.then(() => session.close());
-
-
+	.then(() => session.close())
+	
 });
 app.delete("/deleteFriendRelation",function(req,res){
 	//create the node js session driver in neo4j
@@ -136,33 +172,6 @@ app.delete("/deleteFriendRelation",function(req,res){
 	.then(() => session.close());
 	
 });
-
-app.post("/runQuery",function(req,res){
-	let body = req.body;
-	let query = body.query;
-	let session = driver.session();
-
-	session.run(query)
-	.then(result => {
-			result.records.forEach(record => {
-			console.log(record)
-			});
-			return res.status(200).json({
-					response:2,
-					content: result
-			});
-	})
-	.catch(error => {
-			console.log(error)
-			return res.status(200).json({
-					response:1,
-					content: error
-			});
-	})
-	.then(() => session.close())
-	
-});
-
 app.delete("/dropTables",function(req,res){
 	let session = driver.session();
 
