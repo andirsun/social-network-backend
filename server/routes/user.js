@@ -1,7 +1,8 @@
 const express = require("express");
 const app = express();
+const bcrypt = require('bcrypt');
 const neo4j = require('neo4j-driver');
-var mysql      = require('mysql');
+var mysql = require('mysql');
 
 ///MYsql driver conection
 // var connection = mysql.createConnection({
