@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const neo4j = require('neo4j-driver');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const { tokenVerification } = require('../middlewares/auth');
 var mysql = require('mysql');
 
 ///MYsql driver conection
@@ -91,12 +92,19 @@ app.post("/login",(req,res)=>{
 	/* token expiration in 30 days */
 	let token = jwt.sign({
 		email : body.email
-	},'secret',{expiresIn: 60*60*24*30})
+	},process.env.TOKEN_SEED,{expiresIn: 60*60*24*30});
 	return res.status(200).json({
 		ok : true,
 		token : token
-	})
-})
+	});
+});
+app.post("/testToken",tokenVerification,(req,res)=>{
+	/* */
+	return res.status(200).json({
+		ok : true,
+		email : req.userEmail //come from middleware
+	});
+});
 app.post("/addNewFriendRelation",function(req,res){
 	//create the node js session driver in neo4j
 	let session = driver.session();
