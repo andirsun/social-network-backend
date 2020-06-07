@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const neo4j = require('neo4j-driver');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const Post = require('../models/posts');
 const { tokenVerification } = require('../middlewares/auth');
 var mysql = require('mysql');
 
@@ -27,9 +28,9 @@ var mysql = require('mysql');
 var driver = neo4j.driver(
 	'neo4j://167.172.216.181:7687',
 	neo4j.auth.basic('neo4j', 'neo4j')
-	);
+);
+//neo4j.auth.basic('neo4j', 'web2020'));
     
-    //neo4j.auth.basic('neo4j', 'web2020'));
 app.get("/getFriends",function(req,res){
 	//create the node js session driver in neo4j
 	let session = driver.session();
@@ -86,6 +87,38 @@ app.get("/getFriendsFromFriends",function(req,res){
 		});
 	})
 	.then(() => session.close());
+});
+app.get("/publication/user",(req,res)=>{
+	/* get query params*/ 
+	let idUser = req.query.userId;
+	Post.find({idUser : idUser},(err,response)=>{
+		console.log(response);
+	})
+});
+app.get("/publication/user/?friends=true",(req,res)=>{
+
+});
+app.post("/publication/user",(req,res)=>{
+	/* get query params*/ 
+	let idUser = req.query.userId;
+	var body = req.body;
+	let comment = body.text || "";
+	let newPost = new Post({
+		idUser,
+		text : comment,
+	})
+	/* save new post*/
+	newPost.save((err,response)=>{
+		/* handling error*/
+		if(err) return res.status(500).json({response : 3,content:{err}});
+		/* response */
+		return res.status(200).json({
+			response : 2,
+			content :{
+				message : "Post creado correctamente"
+			}
+		});
+	});
 });
 app.post("/login",(req,res)=>{
 	var body = req.body;
