@@ -33,7 +33,7 @@ app.use(require("./routes/index")); // import all routes
 
 /* Mongo Database conection */
 mongoose.connect(
-	"mongodb+srv://web2020:web2020@timugo-d2l1g.mongodb.net/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&ssl=true",
+	"mongodb+srv://web2020:web2020@timugo-d2l1g.mongodb.net/mini-facebook",
 	{ useNewUrlParser: true, useCreateIndex: true, useUnifiedTopology: true ,useFindAndModify: false},
 	(err, res) => {
 		if (err) throw err;

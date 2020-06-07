@@ -1,10 +1,8 @@
 const mongoose = require('mongoose');
 const uniqueValidator = require('mongoose-unique-validator');
-
-import * as momentZone from 'moment-timezone';
+var momentZone = require('moment-timezone'); // require
 
 let Schema = mongoose.Schema;
-
 
 let postSchema = new Schema({
     time : {
