@@ -31,15 +31,24 @@ app.use(bodyParser.json());
 //all routes to API
 app.use(require("./routes/index")); // import all routes
 
+/* Mongo Database conection */
+mongoose.connect(
+	"mongodb+srv://web2020:web2020@timugo-d2l1g.mongodb.net/?authSource=admin&readPreference=primary&appname=MongoDB%20Compass&ssl=true",
+	{ useNewUrlParser: true, useCreateIndex: true, useUnifiedTopology: true ,useFindAndModify: false},
+	(err, res) => {
+		if (err) throw err;
 
+		console.log("Base de datos ONLINE");
+	}
+);
 
-
-
+/* Error handling */
 process.on("unhandledRejection", (reason, promise) => {
-    console.log("Unhandled Rejection at:", reason.stack || reason);
-    // Recommended: send the information to sentry.io
-    // or whatever crash reporting service you use
+	console.log("Unhandled Rejection at:", reason.stack || reason);
+	// Recommended: send the information to sentry.io
+	// or whatever crash reporting service you use
 });
+/* Server definition*/
 server.listen(process.env.PORT, () => {
-    console.log("Escuchando puerto: ", process.env.PORT);
+	console.log("Escuchando puerto: ", process.env.PORT);
 });
