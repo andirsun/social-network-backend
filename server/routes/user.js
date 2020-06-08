@@ -104,24 +104,22 @@ app.get("/publication/user",(req,res)=>{
 	})
 });
 app.get("/publication/user/friends=true",(req,res)=>{
-	/* get query params*/ 
-	let idUser = req.query.userId;
-	/* here its neccesary make a request to get the friends of this user*/
-
-	
-	let friendsIds = [1,2] //temporal
-	/* Fix all posts from friends -> means all posts with idUser = friendsIds array */
-	Post.find({idUser : {$in : friendsIds}},(err,posts)=>{
-		/* handling error*/
-		if(err) return res.status(500).json({response : 3,content:{err}});
-		/* response */
-		return res.status(200).json({
-			response : 2,
-			content :{
-				posts
-			}
-		});
-	})
+  /* get query params*/ 
+  let idUser = req.query.userId;
+  /* here its neccesary make a request to get the friends of this user*/
+  let friendsIds = [1,2] //temporal
+  /* Fix all posts from friends -> means all posts with idUser = friendsIds array */
+  Post.find({idUser : {$in : friendsIds}},(err,posts)=>{
+    /* handling error*/
+    if(err) return res.status(500).json({response : 3,content:{err}});
+    /* response */
+    return res.status(200).json({
+      response : 2,
+      content :{
+        posts
+      }
+    });
+})
 });
 app.post("/publication/user",(req,res)=>{
 	/* get query params*/ 
