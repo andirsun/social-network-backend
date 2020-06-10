@@ -25,6 +25,14 @@ var driver = neo4j.driver(
 	'neo4j://167.172.216.181:7687',
 	neo4j.auth.basic('neo4j', 'neo4j')
 );
+driver.verifyConnectivity()
+	.then(res=>{
+		console.log(res);
+	})
+	.catch(err=>{
+		console.log(`err ${err}`);
+	})
+
 //neo4j.auth.basic('neo4j', 'web2020'));
     
 app.get("/getFriends",tokenVerification,function(req,res){
@@ -174,10 +182,21 @@ app.post("/users/userId1/:userId1/userId2/:userId2/send-friend-request",tokenVer
 	});
 });
 app.post("/users/userId/:userId/friendRequestId/:friendRequestId",tokenVerification,(req,res)=>{
-
-});
-app.post("/users/userId/:userId/friendRequestId/:friendRequestId",tokenVerification,(req,res)=>{
-
+	let idUser = parseInt(req.params.userId || "0");
+	let idFriendRequest = parseInt(req.params.friendRequestId || "0");
+	let status = req.query.status; 
+	let statusResponse = (status == "accept") ? "accept" : "reject";
+	const sql = `UPDATE daemon SET status='${status}' WHERE idD = ${idFriendRequest} AND idU1= ${idUser};`
+	connection.query(sql, (error, results, fields)=>{
+		if (error) return res.status(500).json({response : 3,content:{error}});
+		return res.status(200).json({
+			response : 2,
+			content :{
+				message : "Solicitud aceptada / rechazada correctamente",
+				results
+			}
+		});
+	});
 });
 app.post("/users",(req,res)=>{
 	let body = req.body;
@@ -188,14 +207,23 @@ app.post("/users",(req,res)=>{
 	let userName = body.userName;
 	let password = bcrypt.hashSync(body.password, 10);
 	let email = body.email;
-	let query =`INSERT INTO user (name,lastname,cellphone,address,username,password,email) VALUES (${name},${lastName},${phone},${address},${userName},"${password}",${email})`;
+	const sql  =`INSERT INTO user (name,lastname,cellphone,address,username,password,email) VALUES (${name},${lastName},${phone},${address},${userName},"${password}",${email})`;
 	/* Query Sql*/
-	connection.query(query, (error, results, fields)=>{
+	connection.query(sql, async (error, results, fields)=>{
 		if (error) return res.status(500).json({response : 3,content:{error}});
+		/* insert in neo4j*/
+		if(results.insertId){
+			
+			const query = `CREATE(${userName}:Person {name: ${name}, id:${results.insertId}})`
+			let resultQuery = await neo4jQuery(query);
+			console.log(resultQuery);
+
+		}
 		return res.status(200).json({
 			response : 2,
 			content :{
-				message : "Usuario creado correctamente"
+				message : "Usuario creado correctamente",
+				results
 			}
 		});
 	});
@@ -374,7 +402,27 @@ app.delete("/dropTables",function(req,res){
 // match(x:Person{name:'Laura'}) Match(y:Person{name:'Valentina'}) create(x)-[:FRIEND]->(y)
 // match(x:Person{name:'Laura'}) Match(y:Person{name:'Erica'}) create(x)-[:FRIEND]->(y)
 // match(x:Person{name:'Tomas'}) Match(y:Person{name:'Jose'}) create(x)-[:FRIEND]->(y) 
+async function neo4jQuery (query){
+	let session = driver.session();
+	session.run(query)
+	.then(result => {
+			result.records.forEach(record => {
+			console.log(record)
+			});
+			return {
+				response:2,
+				content: result
+			};
+	})
+	.catch(error => {
+			console.log(error)
+			return {
+				response:1,
+				content: error
+			};
+	})
+	.finally(() => session.close())
 
-
+}
 
 module.exports = app;
