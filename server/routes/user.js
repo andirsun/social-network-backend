@@ -122,6 +122,24 @@ app.get("/publication/user/friends=true",tokenVerification,(req,res)=>{
     });
 })
 });
+app.get("/users/name",tokenVerification,(req,res)=>{
+
+});
+app.get("/users/id",tokenVerification,(req,res)=>{
+
+});
+app.get("/users/:userId/friend-requests",tokenVerification,(req,res)=>{
+
+});
+app.post("/users/userId1/:userId1/userId2/:userId2/send-friend-request",tokenVerification,(req,res)=>{
+
+});
+app.post("/users/userId/:userId/friendRequestId/:friendRequestId",tokenVerification,(req,res)=>{
+
+});
+app.post("/users/userId/:userId/friendRequestId/:friendRequestId",tokenVerification,(req,res)=>{
+
+});
 app.post("/users",(req,res)=>{
 	let body = req.body;
 	let name = body.name;
@@ -168,16 +186,55 @@ app.post("/publication/user",tokenVerification,(req,res)=>{
 		});
 	});
 });
-app.post("/login",tokenVerification,(req,res)=>{
+app.post("/login",(req,res)=>{
 	var body = req.body;
-	/* token expiration in 30 days */
-	let token = jwt.sign({
-		email : body.email
-	},process.env.TOKEN_SEED,{expiresIn: 60*60*24*30});
-	return res.status(200).json({
-		ok : true,
-		token : token
+	let userName = body.userName;
+	//let password = bcrypt.hashSync(body.password, 10);
+	let password = body.password;
+	const sql = `select name , password from user where username='${userName}';`;
+	connection.connect();
+	connection.query(sql, (error, results, fields)=>{
+		if (error) return res.status(500).json({response : 3,content:{error}});
+		/* if user exists */
+		if(results.length){
+			bcrypt.compare(password, results[0].password, (err, match)=>{
+				if(!match){
+					/* close conection */
+					connection.end();
+					return res.status(200).json({
+						response : 1,
+						content :{
+							message : "Usuario o contraseña incorrectos"
+						}
+					});		
+				}else{
+					/* token expiration in 30 days */
+					let token = jwt.sign({
+						email : body.email
+					},process.env.TOKEN_SEED,{expiresIn: 60*60*24*30});
+					/* close conection */
+					connection.end();
+					return res.status(200).json({
+						response : 2,
+						content :{
+							token
+						}
+					});
+				}
+			});
+		}else {
+			/* close conection */
+			connection.end();
+			return res.status(200).json({
+				response : 1,
+				content :{
+					message : "Usuario o contraseña incorrectos"
+				}
+			});
+		}
+		
 	});
+	
 });
 app.post("/testToken",tokenVerification,(req,res)=>{
 	/* */
