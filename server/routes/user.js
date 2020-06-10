@@ -9,21 +9,22 @@ const { tokenVerification } = require('../middlewares/auth');
 var mysql = require('mysql');
 
 ///MYsql driver conection
-// var connection = mysql.createConnection({
-//   host     : 'sql9.freemysqlhosting.net',
-//   user     : 'sql9334560',
-//   password : 'iCsbEnyNad',
-//   database : 'sql9334560'
-// });
+var connection = mysql.createConnection({
+	host : 'localhost',
+	port : 3306,
+  user : 'root',
+  password : 'admin132',
+  database : 'Users'
+});
  
-// connection.connect();
+connection.connect();
  
-// connection.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
-//   if (error) throw error;
-//   console.log('The solution is: ', results[0].solution);
-// });
+connection.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
+  if (error) throw error;
+  console.log('The solution is: ', results[0].solution);
+});
  
-// connection.end();
+connection.end();
 //conection to databse nee4J
 var driver = neo4j.driver(
 	'neo4j://167.172.216.181:7687',
