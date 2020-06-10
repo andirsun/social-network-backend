@@ -149,7 +149,18 @@ app.get("/users/:userId/friend-requests",tokenVerification,(req,res)=>{
 
 });
 app.post("/users/userId1/:userId1/userId2/:userId2/send-friend-request",tokenVerification,(req,res)=>{
-
+	let idUser1 = parseInt(req.params.userId1 || "0");
+	let idUser2 = parseInt(req.params.userId2 || "0");
+	const sql = `INSERT INTO daemon ( idU1, idU2, status) VALUES (${idUser1},${idUser2},'send');`;
+	connection.query(sql, (error, results, fields)=>{
+		if (error) return res.status(500).json({response : 3,content:{error}});
+		return res.status(200).json({
+			response : 2,
+			content :{
+				message : "Solicitud enviada correctamente"
+			}
+		});
+	});
 });
 app.post("/users/userId/:userId/friendRequestId/:friendRequestId",tokenVerification,(req,res)=>{
 
