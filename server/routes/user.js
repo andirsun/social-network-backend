@@ -8,23 +8,18 @@ const Post = require('../models/posts');
 const { tokenVerification } = require('../middlewares/auth');
 var mysql = require('mysql');
 
-///MYsql driver conection
-var connection = mysql.createConnection({
+var db_config = {
 	host : '167.172.216.181',
 	port : 3306,
   user : 'andirsun',
   password : 'web2020',
   database : 'Users'
-});
- 
-// connection.connect();
- 
-// connection.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
-//   if (error) throw error;
-//   console.log('The solution is: ', results[0].solution);
-// });
- 
-// connection.end();
+};
+///MYsql driver conection
+var connection = mysql.createConnection(db_config);
+
+
+
 //conection to databse nee4J
 var driver = neo4j.driver(
 	'neo4j://167.172.216.181:7687',
@@ -123,10 +118,32 @@ app.get("/publication/user/friends=true",tokenVerification,(req,res)=>{
 })
 });
 app.get("/users/name",tokenVerification,(req,res)=>{
+	let name = req.query.name;
+	const sql = `SELECT idU,lastname,cellphone,address, username, email FROM user where name='${name}';`;
 
+	connection.query(sql, (error, results, fields)=>{
+		if (error) return res.status(500).json({response : 3,content:{error}});
+		return res.status(200).json({
+			response : 2,
+			content :{
+				users : results
+			}
+		});
+	});
 });
 app.get("/users/id",tokenVerification,(req,res)=>{
-
+	let idUser = req.query.idUser;
+	const sql = `SELECT idU,lastname,cellphone,address, username, email FROM user where idU='${idUser}';`;
+	/* run mysql query*/
+	connection.query(sql, (error, results, fields)=>{
+		if (error) return res.status(500).json({response : 3,content:{error}});
+		return res.status(200).json({
+			response : 2,
+			content :{
+				users : results
+			}
+		});
+	});
 });
 app.get("/users/:userId/friend-requests",tokenVerification,(req,res)=>{
 
@@ -149,7 +166,6 @@ app.post("/users",(req,res)=>{
 	let userName = body.userName;
 	let password = bcrypt.hashSync(body.password, 10);
 	let email = body.email;
-	connection.connect();
 	let query =`INSERT INTO user (name,lastname,cellphone,address,username,password,email) VALUES (${name},${lastName},${phone},${address},${userName},"${password}",${email})`;
 	/* Query Sql*/
 	connection.query(query, (error, results, fields)=>{
@@ -161,8 +177,6 @@ app.post("/users",(req,res)=>{
 			}
 		});
 	});
-	/* close conection */
-	connection.end();
 });
 app.post("/publication/user",tokenVerification,(req,res)=>{
 	/* get query params*/ 
@@ -192,15 +206,12 @@ app.post("/login",(req,res)=>{
 	//let password = bcrypt.hashSync(body.password, 10);
 	let password = body.password;
 	const sql = `select name , password from user where username='${userName}';`;
-	connection.connect();
 	connection.query(sql, (error, results, fields)=>{
 		if (error) return res.status(500).json({response : 3,content:{error}});
 		/* if user exists */
 		if(results.length){
 			bcrypt.compare(password, results[0].password, (err, match)=>{
 				if(!match){
-					/* close conection */
-					connection.end();
 					return res.status(200).json({
 						response : 1,
 						content :{
@@ -212,8 +223,6 @@ app.post("/login",(req,res)=>{
 					let token = jwt.sign({
 						email : body.email
 					},process.env.TOKEN_SEED,{expiresIn: 60*60*24*30});
-					/* close conection */
-					connection.end();
 					return res.status(200).json({
 						response : 2,
 						content :{
@@ -223,8 +232,6 @@ app.post("/login",(req,res)=>{
 				}
 			});
 		}else {
-			/* close conection */
-			connection.end();
 			return res.status(200).json({
 				response : 1,
 				content :{
