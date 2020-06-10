@@ -146,7 +146,18 @@ app.get("/users/id",tokenVerification,(req,res)=>{
 	});
 });
 app.get("/users/:userId/friend-requests",tokenVerification,(req,res)=>{
-
+	let idUser = parseInt(req.params.userId || "0");
+	const sql = `SELECT user.username FROM user INNER JOIN daemon ON user.idU=daemon.idU1 WHERE daemon.idU2 = ${idUser} AND daemon.status = 'send';`
+	/* Query Sql*/
+	connection.query(sql, (error, results, fields)=>{
+		if (error) return res.status(500).json({response : 3,content:{error}});
+		return res.status(200).json({
+			response : 2,
+			content :{
+				users : results
+			}
+		});
+	});
 });
 app.post("/users/userId1/:userId1/userId2/:userId2/send-friend-request",tokenVerification,(req,res)=>{
 	let idUser1 = parseInt(req.params.userId1 || "0");
