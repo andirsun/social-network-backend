@@ -22,19 +22,20 @@ var connection = mysql.createConnection(db_config);
 
 //conection to databse nee4J
 var driver = neo4j.driver(
-	'neo4j://167.172.216.181:7687',
-	neo4j.auth.basic('neo4j', 'neo4j')
+	'neo4j://localhost:7687',
+	neo4j.auth.basic('neo4j', 'web2020')
 );
+/* Testing neo4j database conection */
 driver.verifyConnectivity()
 	.then(res=>{
-		console.log(res);
+		/* success */
+		console.log(`Neo4j Database blutooth devaice connect succefulley`);
 	})
 	.catch(err=>{
+		/* Error */
 		console.log(`err ${err}`);
 	})
 
-//neo4j.auth.basic('neo4j', 'web2020'));
-    
 app.get("/getFriends",tokenVerification,function(req,res){
 	//create the node js session driver in neo4j
 	let session = driver.session();
@@ -111,19 +112,28 @@ app.get("/publication/user/friends=true",tokenVerification,(req,res)=>{
   /* get query params*/ 
   let idUser = req.query.userId;
   /* here its neccesary make a request to get the friends of this user*/
-  let friendsIds = [1,2] //temporal
+	let friendsIds = [] //temporal
+	const sql = `SELECT idU1 FROM daemon WHERE idU2 = ${idUser} AND status='accept';`
+	
+	connection.query(sql, (error, results, fields)=>{
+		if (error) return res.status(500).json({response : 3,content:{error}});
+		results.forEach(friend => {
+			friendsIds.push(friend.idU1);
+		});
+		Post.find({idUser : {$in : friendsIds}},(err,posts)=>{
+			/* handling error*/
+			if(err) return res.status(500).json({response : 3,content:{err}});
+			/* response */
+			return res.status(200).json({
+				response : 2,
+				content :{
+					posts
+				}
+			});
+		});
+	
+	});
   /* Fix all posts from friends -> means all posts with idUser = friendsIds array */
-  Post.find({idUser : {$in : friendsIds}},(err,posts)=>{
-    /* handling error*/
-    if(err) return res.status(500).json({response : 3,content:{err}});
-    /* response */
-    return res.status(200).json({
-      response : 2,
-      content :{
-        posts
-      }
-    });
-})
 });
 app.get("/users/name",tokenVerification,(req,res)=>{
 	let name = req.query.name;
@@ -186,17 +196,31 @@ app.post("/users/userId/:userId/friendRequestId/:friendRequestId",tokenVerificat
 	let idFriendRequest = parseInt(req.params.friendRequestId || "0");
 	let status = req.query.status; 
 	let statusResponse = (status == "accept") ? "accept" : "reject";
-	const sql = `UPDATE daemon SET status='${status}' WHERE idD = ${idFriendRequest} AND idU1= ${idUser};`
-	connection.query(sql, (error, results, fields)=>{
+	/* first search for idUser2 */
+	const sql1 = `SELECT idU1 FROM daemon WHERE idD = ${idFriendRequest};`;
+	connection.query(sql1, (error, results, fields)=>{
 		if (error) return res.status(500).json({response : 3,content:{error}});
-		return res.status(200).json({
-			response : 2,
-			content :{
-				message : "Solicitud aceptada / rechazada correctamente",
-				results
-			}
-		});
+		/* IdU1 featched correctly*/
+		if(results[0].idU1){
+			var idU1 = results[0].idU1;
+			const sql2 = `UPDATE daemon SET status='${statusResponse}' WHERE idD = ${idFriendRequest} AND idU2= ${idUser};`
+			console.log(sql2);
+			connection.query(sql2, async (error, results, fields)=>{
+				if (error) return res.status(500).json({response : 3,content:{error}});
+					const query = `match(x:Person{id:${idU1}}) Match(y:Person{id:${idUser}}) create(x)-[:FRIEND]->(y)`
+					let resultQuery = await neo4jQuery(query);
+					return res.status(200).json({
+						response : 2,
+						content :{
+							message : "Solicitud aceptada / rechazada correctamente",
+						}
+					});
+			});
+		}
+		
 	});
+	
+	
 });
 app.post("/users",(req,res)=>{
 	let body = req.body;
@@ -214,18 +238,17 @@ app.post("/users",(req,res)=>{
 		/* insert in neo4j*/
 		if(results.insertId){
 			
-			const query = `CREATE(${userName}:Person {name: ${name}, id:${results.insertId}})`
+			const query = `CREATE(x:Person {name: ${name}, id:${results.insertId}})`
 			let resultQuery = await neo4jQuery(query);
-			console.log(resultQuery);
+			return res.status(200).json({
+				response : 2,
+				content :{
+					message : "Usuario creado correctamente",
+				}
+			});
 
 		}
-		return res.status(200).json({
-			response : 2,
-			content :{
-				message : "Usuario creado correctamente",
-				results
-			}
-		});
+		
 	});
 });
 app.post("/publication/user",tokenVerification,(req,res)=>{
