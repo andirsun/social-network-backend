@@ -10,21 +10,21 @@ var mysql = require('mysql');
 
 ///MYsql driver conection
 var connection = mysql.createConnection({
-	host : 'localhost',
+	host : '167.172.216.181',
 	port : 3306,
-  user : 'root',
-  password : 'admin132',
+  user : 'andirsun',
+  password : 'web2020',
   database : 'Users'
 });
  
-connection.connect();
+// connection.connect();
  
-connection.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
-  if (error) throw error;
-  console.log('The solution is: ', results[0].solution);
-});
+// connection.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
+//   if (error) throw error;
+//   console.log('The solution is: ', results[0].solution);
+// });
  
-connection.end();
+// connection.end();
 //conection to databse nee4J
 var driver = neo4j.driver(
 	'neo4j://167.172.216.181:7687',
@@ -32,7 +32,7 @@ var driver = neo4j.driver(
 );
 //neo4j.auth.basic('neo4j', 'web2020'));
     
-app.get("/getFriends",function(req,res){
+app.get("/getFriends",tokenVerification,function(req,res){
 	//create the node js session driver in neo4j
 	let session = driver.session();
 	//reading the id from the url parameters
@@ -58,7 +58,7 @@ app.get("/getFriends",function(req,res){
 	})
 	.then(() => session.close());
 });
-app.get("/getFriendsFromFriends",function(req,res){
+app.get("/getFriendsFromFriends",tokenVerification,function(req,res){
 	//create the node js session driver in neo4j
 	let session = driver.session();
 	
@@ -89,7 +89,7 @@ app.get("/getFriendsFromFriends",function(req,res){
 	})
 	.then(() => session.close());
 });
-app.get("/publication/user",(req,res)=>{
+app.get("/publication/user",tokenVerification,(req,res)=>{
 	/* get query params*/ 
 	let idUser = req.query.userId;
 	Post.find({idUser : idUser},(err,response)=>{
@@ -104,7 +104,7 @@ app.get("/publication/user",(req,res)=>{
 		});
 	})
 });
-app.get("/publication/user/friends=true",(req,res)=>{
+app.get("/publication/user/friends=true",tokenVerification,(req,res)=>{
   /* get query params*/ 
   let idUser = req.query.userId;
   /* here its neccesary make a request to get the friends of this user*/
@@ -122,7 +122,31 @@ app.get("/publication/user/friends=true",(req,res)=>{
     });
 })
 });
-app.post("/publication/user",(req,res)=>{
+app.post("/users",(req,res)=>{
+	let body = req.body;
+	let name = body.name;
+	let lastName = body.lastName;
+	let phone = body.phone;
+	let address = body.address;
+	let userName = body.userName;
+	let password = bcrypt.hashSync(body.password, 10);
+	let email = body.email;
+	connection.connect();
+	let query =`INSERT INTO user (name,lastname,cellphone,address,username,password,email) VALUES (${name},${lastName},${phone},${address},${userName},"${password}",${email})`;
+	/* Query Sql*/
+	connection.query(query, (error, results, fields)=>{
+		if (error) return res.status(500).json({response : 3,content:{error}});
+		return res.status(200).json({
+			response : 2,
+			content :{
+				message : "Usuario creado correctamente"
+			}
+		});
+	});
+	/* close conection */
+	connection.end();
+});
+app.post("/publication/user",tokenVerification,(req,res)=>{
 	/* get query params*/ 
 	let idUser = req.query.userId;
 	var body = req.body;
@@ -144,7 +168,7 @@ app.post("/publication/user",(req,res)=>{
 		});
 	});
 });
-app.post("/login",(req,res)=>{
+app.post("/login",tokenVerification,(req,res)=>{
 	var body = req.body;
 	/* token expiration in 30 days */
 	let token = jwt.sign({
@@ -162,7 +186,7 @@ app.post("/testToken",tokenVerification,(req,res)=>{
 		email : req.userEmail //come from middleware
 	});
 });
-app.post("/addNewFriendRelation",function(req,res){
+app.post("/addNewFriendRelation",tokenVerification,function(req,res){
 	//create the node js session driver in neo4j
 	let session = driver.session();
 	//read the body if request
@@ -187,7 +211,7 @@ app.post("/addNewFriendRelation",function(req,res){
 	.then(() => session.close());
 		
 });
-app.post("/runQuery",function(req,res){
+app.post("/runQuery",tokenVerification,function(req,res){
 	let body = req.body;
 	let query = body.query;
 	let session = driver.session();
@@ -212,7 +236,7 @@ app.post("/runQuery",function(req,res){
 	.then(() => session.close())
 	
 });
-app.delete("/deleteFriendRelation",function(req,res){
+app.delete("/deleteFriendRelation",tokenVerification,function(req,res){
 	//create the node js session driver in neo4j
 	let session = driver.session();
 	//read the body if request
